@@ -1,7 +1,3 @@
-from dataclasses import dataclass
-import re
-from tkinter import N
-import numpy as np
 
 
 class Process:
@@ -82,8 +78,9 @@ class Scheduler:
         for p in self.processes:
             print(p)
         print()
-        print(f"Average Waiting Time: {np.mean(waiting_times)}")
-        print(f"Average Turnaround Time: {np.mean(turnaround_times)}")
+        print(f"Average Waiting Time: {sum(waiting_times) / self.n_processes}")
+        print(
+            f"Average Turnaround Time: {sum(turnaround_times) / self.n_processes}")
 
 
 class FCFS(Scheduler):

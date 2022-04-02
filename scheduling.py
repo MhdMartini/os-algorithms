@@ -1,13 +1,17 @@
 from dataclasses import dataclass
 import re
+from tkinter import N
 import numpy as np
 
 
 class Process:
     """process class to hold proces info"""
 
-    def __init__(self, pid: int, arrival_time: int, burst_time: int,
-                 priority: int = None, waiting_time: int = 0,
+    def __init__(self, pid: int,
+                 arrival_time: int = 0,
+                 burst_time: int = None,
+                 priority: int = None,
+                 waiting_time: int = 0,
                  turnaround_time: int = 0) -> None:
         self.pid = pid
         self.arrival_time = arrival_time
@@ -68,11 +72,8 @@ class Scheduler:
 
     def get_stats(self):
         """return waiting times, and turnaround times for each process"""
-        waiting_times = np.zeros(self.n_processes, dtype=int)
-        turnaround_times = np.zeros(self.n_processes, dtype=int)
-        for p in self.processes:
-            waiting_times[p.pid] = p.waiting_time
-            turnaround_times[p.pid] = p.turnaround_time
+        waiting_times = [p.waiting_time for p in self.processes]
+        turnaround_times = [p.turnaround_time for p in self.processes]
         return waiting_times, turnaround_times
 
     def print_stats(self):
@@ -110,6 +111,19 @@ class SJF(Scheduler):
             self.print_stats()
 
 
+class Priority(Scheduler):
+    """priority scheduling"""
+
+    def __init__(self, processes: list[Process], verbose: bool = False) -> None:
+        super(Priority, self).__init__(processes)
+        self.que = sorted(processes, key=lambda p: (
+            p.arrival_time, p.priority))
+        self.schedule()
+        self.stats = self.get_stats()
+        if verbose:
+            self.print_stats()
+
+
 class STCF(Scheduler):
     def __init__(self, processes: list[Process], verbose: bool = False) -> None:
         super().__init__(processes)
@@ -140,7 +154,7 @@ class STCF(Scheduler):
                     return p to que
                 enque new arrivals
         """
-        arrival_times = sorted([p.arrival_time for p in self.processes])
+        arrival_times = sorted(set([p.arrival_time for p in self.processes]))
         while True:
             if arrival_times:
                 t = arrival_times.pop(0)
@@ -167,32 +181,36 @@ class STCF(Scheduler):
             if p.arrival_time == t:
                 self.que.enque(p)
 
-    def get_stats(self, verbose=False):
-        """return waiting times, and turnaround times for each process"""
-        waiting_times = np.zeros(self.n_processes, dtype=int)
-        turnaround_times = np.zeros(self.n_processes, dtype=int)
-        for p in self.processes:
-            waiting_times[p.pid] = p.waiting_time
-            turnaround_times[p.pid] = p.turnaround_time
-        return waiting_times, turnaround_times
-
 
 def main(args):
     assert(len(args.burst_times) == len(args.arrival_times))
-    processes = [Process(i, args.arrival_times[i], args.burst_times[i])
+
+    priorities = args.priorities
+    if args.priorities == (0,):
+        priorities *= len(args.burst_times)
+
+    processes = [Process(pid=i,
+                         arrival_time=args.arrival_times[i],
+                         burst_time=args.burst_times[i],
+                         priority=priorities[i])
                  for i in range(len(args.burst_times))]
-    scheduler = [FCFS, SJF, STCF][args.scheduler]
+
+    schedulers = [FCFS, SJF, Priority, STCF]
+    scheduler = schedulers[args.scheduler]
     scheduler(processes, verbose=True)
 
 
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('--scheduler', type=int, help="0: FCFS, 1: SJF")
+    parser.add_argument('--scheduler', type=int,
+                        help="0: FCFS, 1: SJF, 2: Priority, 3: STCF")
     parser.add_argument('--burst_times', type=int, nargs="+",
                         help="expected cpu-burst times of each process")
     parser.add_argument('--arrival_times', type=int, nargs="+",
                         help="arrival times of each process")
+    parser.add_argument('--priorities', type=int, nargs="+",
+                        default=(0,), help="priority of each process")
     args = parser.parse_args()
 
     main(args)

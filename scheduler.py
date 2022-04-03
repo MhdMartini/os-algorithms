@@ -1,3 +1,9 @@
+from gzip import READ
+
+
+READY = 0
+RUNNING = 1
+FINISHED = 2
 
 
 class Process:
@@ -10,29 +16,25 @@ class Process:
         self.taub = tb  # remaining burst time
         self.tw = 0  # wait time
         self.tta = 0  # turnaround time
+        self.status = READY
 
-    def step(self, run=True):
+    def step(self):
         """increment times according to whether process is running, waiting, or finished"""
-        if self.is_done():
-            return True
-
         self.tta += 1
-        if run:
+        if self.status == RUNNING:
             self.taub -= 1
-        else:
+        elif self.status == READY:
             self.tw += 1
         return self.taub == 0
 
-    def is_done(self):
-        return self.taub == 0
-
     def __str__(self):
-        row = [self.pid, self.ta, self.tb, self.p, self.tw, self.tta]
+        row = [self.pid, self.ta, self.tb,
+               self.p, self.tw, self.tta, self.taub]
         row = [str(stat) for stat in row]
         return "\t".join(row)
 
     def __repr__(self):
-        return self.__str__()  # f"{self.pid}"
+        return f"{self.pid}"
 
 
 class Que:
@@ -45,12 +47,12 @@ class Que:
         self.idx = 0  # index into curernt serviced process
         self.t = 0
 
-    def enque(self, p: Process):
-        """enque a process"""
+    def enque(self, r: Process):
+        """enque a process request"""
         pass
 
     def enque_t(self):
-        """enque the processes that arrive at time t"""
+        """enque the requests that arrive at time t"""
         try:
             while self.rt[0].ta == self.t:
                 r = self.rt.pop(0)
@@ -69,11 +71,25 @@ class Que:
         done = True
         inc = False
         for i, p in enumerate(self.que):
-            done_p = p.step(run=i == self.idx)
-            if done_p and i == self.idx:
-                inc = True
-            if done_p == False:
+            if i == self.idx:
+                p.status = RUNNING
+
+            if p.status == FINISHED:
+                # don't step finished processes
+                continue
+
+            done_p = p.step()
+            if done_p:
+                if p.status == RUNNING:
+                    p.status = FINISHED
+                    inc = True
+            else:
                 done = False
+
+        # print(self.idx)
+        # self.print_stats()
+        # if input():
+        #     exit()
 
         if inc:
             self.idx += 1
@@ -98,6 +114,40 @@ class FCFS(Que):
         self.que.append(p)
 
 
+class SJF(Que):
+    def __init__(self, rt) -> None:
+        super(SJF, self).__init__(rt)
+        # self.rt = sorted(rt, key=lambda x: x.ta)  # requests sorted by AT
+
+    # def enque(self, r: Process):
+    #     search_range = len(self.que) - (self.idx + 1)
+    #     if search_range <= 0:
+    #         self.que.append(r)
+    #         return
+    #     for i in range(search_range):
+    #         p = self.que[self.idx + 1 + i]
+    #         if r.tb < p.tb:
+    #             self.que.insert(self.idx + 1, r)
+    #             return
+    #     # if r is longer than all processes
+    #     self.que.append(r)
+
+
+class STCF(Que):
+    def __init__(self, rt: list[Process]) -> None:
+        super(STCF, self).__init__(rt)
+
+
+class Priority(Que):
+    def __init__(self, rt: list[Process]) -> None:
+        super(STCF, self).__init__(rt)
+
+
+class RoundRobin(Que):
+    def __init__(self, rt: list[Process]) -> None:
+        super(STCF, self).__init__(rt)
+
+
 def main(args):
     assert(len(args.burst_times) == len(args.arrival_times))
 
@@ -111,7 +161,7 @@ def main(args):
                          p=priorities[i])
                  for i in range(len(args.burst_times))]
 
-    schedulers = [FCFS]
+    schedulers = [FCFS, SJF, STCF, Priority, RoundRobin]
     scheduler_class = schedulers[args.scheduler]
     scheduler = scheduler_class(processes)
     while True:

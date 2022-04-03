@@ -1,4 +1,3 @@
-from gzip import READ
 
 
 READY = 0
@@ -28,8 +27,7 @@ class Process:
         return self.taub == 0
 
     def __str__(self):
-        row = [self.pid, self.ta, self.tb,
-               self.p, self.tw, self.tta, self.taub]
+        row = [self.pid, self.ta, self.tb, self.p, self.tw, self.tta]
         row = [str(stat) for stat in row]
         return "\t".join(row)
 
@@ -57,6 +55,11 @@ class Que:
             while self.rt[0].ta == self.t:
                 r = self.rt.pop(0)
                 self.enque(r)
+
+                # print(self.que)
+                # if input():
+                #     exit()
+
         except IndexError:
             # request buffer is empty
             return
@@ -71,12 +74,12 @@ class Que:
         done = True
         inc = False
         for i, p in enumerate(self.que):
-            if i == self.idx:
-                p.status = RUNNING
-
             if p.status == FINISHED:
                 # don't step finished processes
                 continue
+
+            if i == self.idx:
+                p.status = RUNNING
 
             done_p = p.step()
             if done_p:
@@ -86,8 +89,9 @@ class Que:
             else:
                 done = False
 
-        # print(self.idx)
+        # print(f"{self.t =: }, {self.idx =: }")
         # self.print_stats()
+        # print()
         # if input():
         #     exit()
 
@@ -117,35 +121,52 @@ class FCFS(Que):
 class SJF(Que):
     def __init__(self, rt) -> None:
         super(SJF, self).__init__(rt)
-        # self.rt = sorted(rt, key=lambda x: x.ta)  # requests sorted by AT
 
-    # def enque(self, r: Process):
-    #     search_range = len(self.que) - (self.idx + 1)
-    #     if search_range <= 0:
-    #         self.que.append(r)
-    #         return
-    #     for i in range(search_range):
-    #         p = self.que[self.idx + 1 + i]
-    #         if r.tb < p.tb:
-    #             self.que.insert(self.idx + 1, r)
-    #             return
-    #     # if r is longer than all processes
-    #     self.que.append(r)
+    def enque(self, r: Process):
+        search_range = len(self.que) - self.idx
+        for i in range(search_range):
+            p = self.que[self.idx + i]
+            if p.status == RUNNING:
+                continue
+            if r.tb < p.tb:
+                self.que.insert(self.idx + i, r)
+                return
+
+        # if r is longer than all processes, or que is empty or all
+        # processes are finished
+        self.que.append(r)
 
 
 class STCF(Que):
-    def __init__(self, rt: list[Process]) -> None:
+    def __init__(self, rt) -> None:
         super(STCF, self).__init__(rt)
+
+    def enque(self, r: Process):
+        search_range = len(self.que) - self.idx
+        for i in range(search_range):
+            p = self.que[self.idx + i]
+            if r.tb < p.tb:
+                print(f"P{r.pid} is taking the place of P{p.pid}")
+                if p.status == RUNNING:
+                    p.status = READY
+                    # print(f"P{p.pid} changed from RUNNING to READY:")
+                    # print(p.pid, p.status)
+                self.que.insert(self.idx + i, r)
+                return
+
+        # if r is longer than all processes, or que is empty or all
+        # processes are finished
+        self.que.append(r)
 
 
 class Priority(Que):
     def __init__(self, rt: list[Process]) -> None:
-        super(STCF, self).__init__(rt)
+        super(Priority, self).__init__(rt)
 
 
 class RoundRobin(Que):
     def __init__(self, rt: list[Process]) -> None:
-        super(STCF, self).__init__(rt)
+        super(RoundRobin, self).__init__(rt)
 
 
 def main(args):

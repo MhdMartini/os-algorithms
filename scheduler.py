@@ -83,9 +83,8 @@ class Que:
 
             done_p = p.step()
             if done_p:
-                if p.status == RUNNING:
-                    p.status = FINISHED
-                    inc = True
+                p.status = FINISHED
+                inc = True
             else:
                 done = False
 
@@ -101,6 +100,7 @@ class Que:
         return done
 
     def print_stats(self):
+        print(self)
         col_names = "\t".join(["PID", "AT", "BT", "P", "WT", "TAT"])
         print(col_names)
         for p in self.que:
@@ -116,6 +116,9 @@ class FCFS(Que):
 
     def enque(self, p: Process):
         self.que.append(p)
+
+    def __str__(self) -> str:
+        return "FCFS"
 
 
 class SJF(Que):
@@ -136,6 +139,9 @@ class SJF(Que):
         # processes are finished
         self.que.append(r)
 
+    def __str__(self) -> str:
+        return "SJF"
+
 
 class STCF(Que):
     def __init__(self, rt) -> None:
@@ -146,7 +152,7 @@ class STCF(Que):
         for i in range(search_range):
             p = self.que[self.idx + i]
             if r.tb < p.tb:
-                print(f"P{r.pid} is taking the place of P{p.pid}")
+                # print(f"P{r.pid} is taking the place of P{p.pid}")
                 if p.status == RUNNING:
                     p.status = READY
                     # print(f"P{p.pid} changed from RUNNING to READY:")
@@ -158,15 +164,41 @@ class STCF(Que):
         # processes are finished
         self.que.append(r)
 
+    def __str__(self) -> str:
+        return "STCF"
+
 
 class Priority(Que):
     def __init__(self, rt: list[Process]) -> None:
         super(Priority, self).__init__(rt)
 
+    def enque(self, r: Process):
+        search_range = len(self.que) - self.idx
+        for i in range(search_range):
+            p = self.que[self.idx + i]
+            if p.status == RUNNING:
+                continue
+            if r.p < p.p:
+                self.que.insert(self.idx + i, r)
+                return
 
-class RoundRobin(Que):
+        # if r is longer than all processes, or que is empty or all
+        # processes are finished
+        self.que.append(r)
+
+    def __str__(self) -> str:
+        return "PRIORITY"
+
+
+class RoundRobin(FCFS):
     def __init__(self, rt: list[Process]) -> None:
         super(RoundRobin, self).__init__(rt)
+
+    def enque(self, r: Process):
+        pass
+
+    def __str__(self) -> str:
+        return "ROUND ROBIN"
 
 
 def main(args):
@@ -182,7 +214,7 @@ def main(args):
                          p=priorities[i])
                  for i in range(len(args.burst_times))]
 
-    schedulers = [FCFS, SJF, STCF, Priority, RoundRobin]
+    schedulers = [FCFS, SJF, Priority, STCF, RoundRobin]
     scheduler_class = schedulers[args.scheduler]
     scheduler = scheduler_class(processes)
     while True:
@@ -206,17 +238,3 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     main(args)
-
-
-# if __name__ == '__main__':
-#     burst_times = [24, 3, 3]
-#     arrival_times = [0, 0, 0]
-#     priorities = [0, 0, 0]
-#     processes = [Process(i, arrival_times[i], burst_times[i],
-#                          priorities[i]) for i in range(len(burst_times))]
-#     que = FCFS(processes)
-#     while True:
-#         done = que.step()
-#         if done:
-#             break
-#     que.print_stats()

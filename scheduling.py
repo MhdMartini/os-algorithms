@@ -172,7 +172,8 @@ class STCF(Scheduler):
                 self.que.increment_waiting_time()
                 t += 1
                 if done:
-                    p.turnaround_time = t - p.arrival_time
+                    # p.turnaround_time = t - p.arrival_time
+                    p.turnaround_time = p.waiting_time + p.burst_time
                     if not self.que.que:
                         return
                     break
@@ -205,8 +206,11 @@ class RoundRobin(Scheduler):
     def schedule(self):
         i = 0
         t = 0
+        pw = []
         while self.que:
-            self.que[i].waiting_time = t
+            if self.que[i] not in pw:
+                self.que[i].waiting_time = t
+                pw.append(self.que[i])
 
             dt = min(self.quantum, self.que[i].rem_burst_time)
             self.que[i].rem_burst_time -= dt

@@ -248,10 +248,8 @@ def main(args):
     schedulers = [FCFS, SJF, Priority, STCF, RoundRobin]
     scheduler_class = schedulers[args.scheduler]
     scheduler = scheduler_class(processes)
-    while True:
-        done = scheduler.step()
-        if done:
-            break
+    while not scheduler.step():
+        pass
     scheduler.print_stats()
 
 

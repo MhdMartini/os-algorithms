@@ -69,7 +69,7 @@ class Que:
         self.enque_t()  # requests arrive at t (if any) can only start at t+1
 
         done = True
-        inc = False
+        inc = 0
         for i, p in enumerate(self.que):
             if p.status == FINISHED:
                 # don't step finished processes
@@ -81,12 +81,11 @@ class Que:
             done_p = p.step()
             if done_p:
                 p.status = FINISHED
-                inc = True
+                inc = 1
             else:
                 done = False
 
-        if inc:
-            self.idx += 1
+        self.idx += inc
         self.t += 1
         return done
 

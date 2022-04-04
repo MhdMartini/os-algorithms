@@ -226,8 +226,6 @@ class RoundRobin(FCFS):
         self.t += burst_time + 1
         return done
 
-        return
-
     def __str__(self) -> str:
         return "ROUND ROBIN"
 
@@ -248,6 +246,7 @@ def main(args):
     schedulers = [FCFS, SJF, Priority, STCF, RoundRobin]
     scheduler_class = schedulers[args.scheduler]
     scheduler = scheduler_class(processes)
+
     while not scheduler.step():
         pass
     scheduler.print_stats()

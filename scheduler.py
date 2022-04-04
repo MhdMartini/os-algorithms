@@ -237,7 +237,7 @@ def main(args):
     if args.priorities == (0,):
         priorities *= len(args.burst_times)
 
-    processes = [Process(pid=i,
+    processes = [Process(pid=i+1,
                          ta=args.arrival_times[i],
                          tb=args.burst_times[i],
                          p=priorities[i])

@@ -1,9 +1,5 @@
 
 
-from gzip import READ
-from re import T
-
-
 READY = 0
 RUNNING = 1
 FINISHED = 2
@@ -193,6 +189,7 @@ class RoundRobin(FCFS):
         self.idx = -1
 
     def update_idx(self):
+        """make sure the index is pointing to a ready process"""
         for _ in range(len(self.que)):
             if self.que[self.idx].status == READY:
                 return True
@@ -227,14 +224,6 @@ class RoundRobin(FCFS):
                     done = False
                     p.status = READY
 
-        # print(f"{self.t =: }, {self.idx =: }")
-        # print(self.que)
-        # self.print_stats()
-        # print()
-        # if input():
-        #     exit()
-
-        # self.idx = (self.idx + 1) % len(self.que)
         self.t += burst_time + 1
         return done
 

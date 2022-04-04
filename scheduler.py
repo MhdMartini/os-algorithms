@@ -1,5 +1,9 @@
 
 
+from gzip import READ
+from re import T
+
+
 READY = 0
 RUNNING = 1
 FINISHED = 2
@@ -27,7 +31,8 @@ class Process:
         return self.taub == 0
 
     def __str__(self):
-        row = [self.pid, self.ta, self.tb, self.p, self.tw, self.tta]
+        row = [self.pid, self.ta, self.tb, self.p,
+               self.tw, self.tta, self.taub, self.status]
         row = [str(stat) for stat in row]
         return "\t".join(row)
 
@@ -52,13 +57,9 @@ class Que:
     def enque_t(self):
         """enque the requests that arrive at time t"""
         try:
-            while self.rt[0].ta == self.t:
+            while self.rt[0].ta <= self.t:
                 r = self.rt.pop(0)
                 self.enque(r)
-
-                # print(self.que)
-                # if input():
-                #     exit()
 
         except IndexError:
             # request buffer is empty
@@ -88,12 +89,6 @@ class Que:
             else:
                 done = False
 
-        # print(f"{self.t =: }, {self.idx =: }")
-        # self.print_stats()
-        # print()
-        # if input():
-        #     exit()
-
         if inc:
             self.idx += 1
         self.t += 1
@@ -101,7 +96,8 @@ class Que:
 
     def print_stats(self):
         print(self)
-        col_names = "\t".join(["PID", "AT", "BT", "P", "WT", "TAT"])
+        col_names = "\t".join(
+            ["PID", "AT", "BT", "P", "WT", "TAT", "RBT", "STA"])
         print(col_names)
         for p in self.que:
             print(p)
@@ -191,11 +187,58 @@ class Priority(Que):
 
 
 class RoundRobin(FCFS):
-    def __init__(self, rt: list[Process]) -> None:
+    def __init__(self, rt: list[Process], quantum=1) -> None:
         super(RoundRobin, self).__init__(rt)
+        self.quantum = quantum
+        self.idx = -1
 
-    def enque(self, r: Process):
-        pass
+    def update_idx(self):
+        for _ in range(len(self.que)):
+            if self.que[self.idx].status == READY:
+                return True
+            self.idx = (self.idx + 1) % len(self.que)
+        return False
+
+    def step(self):
+        """step each process in que; if all are done return True;
+        if current one is done increment que index
+        enque requests_t if it's their time"""
+
+        self.enque_t()  # requests arrive at t (if any) can only start at t+1
+        self.idx = (self.idx + 1) % len(self.que)
+        if not self.update_idx():
+            return True
+
+        done = True
+        for i, p in enumerate(self.que):
+            if p.status == FINISHED:
+                # don't step finished processes
+                continue
+
+            if i == self.idx:
+                p.status = RUNNING
+
+            for burst_time in range(self.quantum):
+                done_p = p.step()
+                if done_p:
+                    p.status = FINISHED
+                    break
+                else:
+                    done = False
+                    p.status = READY
+
+        # print(f"{self.t =: }, {self.idx =: }")
+        # print(self.que)
+        # self.print_stats()
+        # print()
+        # if input():
+        #     exit()
+
+        # self.idx = (self.idx + 1) % len(self.que)
+        self.t += burst_time + 1
+        return done
+
+        return
 
     def __str__(self) -> str:
         return "ROUND ROBIN"
